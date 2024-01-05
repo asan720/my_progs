@@ -1,0 +1,74 @@
+#include <iostream>
+
+class Calculate
+{
+public:
+    double SetCalculate(double firstN, double secondN, char sign)
+    {
+        this->firstN = firstN;
+        this->secondN = secondN;
+        this->sign = sign;
+        GetResult();
+    };
+private:
+    double GetResult()
+    {
+        switch (sign)
+        {
+            case '-':
+                this->result = GetMinus();
+                break;
+            case '*':
+                this->result = GetMultipli();
+                break;
+            case '/':
+                this->result = GetDevide();
+                break;
+            case '%':
+                this->result = GetUnit();
+                break;
+            default:
+                this->result = GetPlus();
+                break;
+        };
+        std::cout<<"result\t"<<this->result<<'\n';
+    };
+
+
+    double GetPlus()
+    {
+        return this->firstN + this->secondN;
+    };
+    double GetMinus()
+    {
+        return this->firstN - this->secondN;
+    };
+    double GetMultipli()
+    {
+        return this->firstN * this->secondN;
+    };
+    double GetDevide()
+    {
+        return this->firstN / this->secondN;
+    };
+    int GetUnit()
+    {
+        return int(this->firstN) % int(this->secondN);
+    };
+
+    double result;
+    double firstN;
+    double secondN;
+    char sign;
+};
+
+int main()
+{
+    Calculate calculate;
+    
+    double firstN, secondN;
+    char sign;
+    
+    std::cin>>firstN>>sign>>secondN;
+    calculate.SetCalculate(firstN, secondN, sign);
+};
