@@ -1,8 +1,15 @@
 #include <iostream>
+namespace a{
+    double firstN = 0;
+    double secondN = 0;
+    char sign = '+';
+}
 
 class Calculate
 {
 public:
+    Calculate(): firstN(0), secondN(0), sign('+'){}
+
     double SetCalculate(double firstN, double secondN, char sign)
     {
         this->firstN = firstN;
@@ -10,6 +17,7 @@ public:
         this->sign = sign;
         GetResult();
     };
+
 private:
     double GetResult()
     {
@@ -33,7 +41,6 @@ private:
         };
         std::cout<<"result\t"<<this->result<<'\n';
     };
-
 
     double GetPlus()
     {
@@ -65,10 +72,9 @@ private:
 int main()
 {
     Calculate calculate;
-    
-    double firstN, secondN;
-    char sign;
-    
+
+    using namespace a;
+
     std::cin>>firstN>>sign>>secondN;
     calculate.SetCalculate(firstN, secondN, sign);
 };
