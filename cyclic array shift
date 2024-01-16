@@ -1,0 +1,68 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+void numberShort(int& n)
+{
+    n = abs(n);
+    if(n > 10)
+    {
+        n = n % 10;
+    }
+}
+
+void print(std::vector<int>& vec)
+{
+    for (int i = 0; i < vec.size(); i++)
+    {
+        std::cout<<vec[i]<<" ";
+    }
+    std::cout<<'\n';
+}
+
+void swap(std::vector<int>& vec, int l, int r)
+{
+    while (l < r)
+    {
+        int tmp = vec[l];
+        vec[l] = vec[r];
+        vec[r] = tmp;
+        l++; r--;
+    }
+    
+}
+
+void swapr(std::vector<int> vec, int n)
+{
+    numberShort(n);
+
+    swap(vec, 0, vec.size() - 1);
+    swap(vec, 0, n - 1);
+    swap(vec, n, vec.size() - 1);
+    print(vec);
+}
+
+void swapl(std::vector<int> vec, int n)
+{
+    numberShort(n);
+    n = vec.size() - n;
+
+    swap(vec, 0, vec.size() - 1);
+    swap(vec, 0, n - 1);
+    swap(vec, n, vec.size() - 1);
+    print(vec);
+}
+
+int main()
+{
+    int n = -24;
+    std::vector<int> vec = {1,2,3,4,5,6,7,8,9,10};
+    if(n >= 0)
+    {
+        swapr(vec,n);
+    }
+    else
+    {
+        swapl(vec, n);
+    }
+}
