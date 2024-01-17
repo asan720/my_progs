@@ -1,0 +1,77 @@
+#include <iostream>
+#include<vector>
+
+
+using namespace std;
+
+bool OnseElem(const vector<int>& numbers)
+{
+    if (numbers.size() < 2)
+    {
+        return false;
+    }
+    else return true;
+}
+
+void Small (vector<int>& numbers)
+{
+    int smalest = numbers[0];
+    auto iter = 0;
+    for (int i = 1; i < numbers.size(); i++)
+    {
+        if (numbers[i] < smalest)
+        {
+            smalest = numbers[i];
+            iter = i;
+        }
+    }
+    numbers.erase(numbers.begin() + iter);
+}
+
+int Sum(const vector<int>& numbers)
+{
+    int sumer = 0;
+    for (int i = 0; i < numbers.size(); i++)
+    {
+        sumer += numbers[i];
+    }
+    return sumer;
+}
+
+void Big (vector<int>& numbers)
+{
+  int bigest = numbers[0];
+  auto iter = 0;
+  for (int i = 1; i < numbers.size(); i++)
+  {
+    if (numbers[i] > bigest)
+    {
+      bigest = numbers[i];
+      iter = i;
+    }
+  }
+  numbers.erase(numbers.begin() + iter);
+}
+
+int sum(vector<int> numbers)
+{
+    if (OnseElem(numbers))
+    {
+        Big (numbers);
+        Small(numbers);
+        return Sum(numbers);
+    }
+    else
+    {
+        return 0;
+    }
+
+}
+
+
+
+int main()
+{
+    vector<int> numbers = {4,6,8,3,2,4,9,7,8};
+    cout<<sum(numbers);
+}
