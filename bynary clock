@@ -1,0 +1,167 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+
+std::vector<int> Time()
+{
+	auto now = std::chrono::system_clock::now();
+	std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+	std::tm* now_tm = std::localtime(&now_c);
+
+	//std::cout << '\n' << now_tm->tm_hour << now_tm->tm_min <<  now_tm->tm_sec << '\n';
+	return std::vector<int>{now_tm->tm_hour, now_tm->tm_min, now_tm->tm_sec};
+}
+
+namespace BynaryClock
+{
+	std::vector<std::vector<char>>vec(4, std::vector<char>(6, '.'));
+}
+
+void Cleaner()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 6; j++)
+		{
+			BynaryClock::vec[i][j] = '.';
+		}
+	}
+}
+
+void Print()
+{
+	std::cout << '\n';
+	for (const auto& elem : BynaryClock::vec)
+	{
+		for (const auto& el : elem)
+		{
+			std::cout << el;
+		}
+		std::cout << '\n';
+	}
+	Cleaner();
+}
+
+enum class Clocs
+{
+	ZERO = 0,
+	ONE = 1,
+	TWO = 2,
+	FORE = 4,
+	EYTH = 8
+};
+
+static std::vector<int> Place(int a)
+{
+	std::vector<Clocs> allvalues = { Clocs::ZERO, Clocs::ONE, Clocs::TWO, Clocs::FORE, Clocs::EYTH };
+
+	for (const auto& reserv : allvalues)
+	{
+		for (const auto& elem1 : allvalues)
+		{
+			for (const auto& elem2 : allvalues)
+			{
+				if (static_cast<int>(elem1) + static_cast<int>(elem2) == a)
+				{
+					//std::cout << static_cast<int>(elem1) << ' ' << static_cast<int>(elem2) << '\n' << '\n';
+					return std::vector<int>{ static_cast<int>(elem1), static_cast<int>(elem2), 0};
+				}
+				else if (static_cast<int>(reserv) + static_cast<int>(elem1) + static_cast<int>(elem2) == a)
+				{
+					//std::cout << static_cast<int>(reserv) << ' ' << static_cast<int>(elem1) << ' ' << static_cast<int>(elem2) << '\n' << '\n';
+					return std::vector<int>{ static_cast<int>(reserv), static_cast<int>(elem1), static_cast<int>(elem2)};
+				}
+				else if (static_cast<int>(reserv) + static_cast<int>(elem2) == a)
+				{
+					//std::cout << static_cast<int>(reserv) << ' ' << static_cast<int>(elem2) << '\n' << '\n';
+					return std::vector<int>{ static_cast<int>(reserv), static_cast<int>(elem2), 0 };
+				}
+			}
+		}
+	}
+	
+	return std::vector<int>{0, 0, 0};
+}
+
+std::vector<std::vector<int>> Timer()
+{
+	std::vector<int> vec = Time();
+	std::vector<std::vector<int>> result;
+
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 2; j++)
+		{
+			if (j < 1)
+			{
+				result.push_back(Place(Time()[i] / 10));
+			}
+			else
+			{
+				result.push_back(Place(Time()[i] % 10));
+			}
+		}
+	}
+
+	/*std::cout << '\n';
+	for (const auto& elem : result)
+	{
+		for (const auto& el : elem)
+		{
+			std::cout << el;
+		}
+		std::cout << '\n';
+	}
+	*/
+	return result;
+}
+
+void Placer()
+{
+	
+	int col = 0;
+	for (const auto& elem : Timer())
+	{
+		
+		for (const auto& vec : elem)
+		{
+			switch (vec)
+			{
+			case static_cast<int>(Clocs::ONE):
+				BynaryClock::vec[3][col] = '#';
+				break;
+			case static_cast<int>(Clocs::TWO):
+				BynaryClock::vec[2][col] = '#';
+				break;
+			case static_cast<int>(Clocs::FORE):
+				BynaryClock::vec[1][col] = '#';
+				break;
+			case static_cast<int>(Clocs::EYTH):
+				BynaryClock::vec[0][col] = '#';
+				break;
+			}
+		}
+		col++;
+	}
+	
+}
+
+int main()
+{
+	system("mode con:cols=18 lines=15");
+	setlocale(LC_ALL, "rus");
+	system("color AF");
+
+	while (true)
+	{
+		Placer();
+
+		Print();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		system("cls");
+		
+	}
+	
+}
