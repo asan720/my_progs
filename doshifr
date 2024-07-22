@@ -1,0 +1,278 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include "qstring.h"
+#include <iostream>
+#include <vector>
+#include <random>
+#include <string>
+#include <algorithm>
+#include <cmath>
+
+int Longer(int num)
+{
+    int sum = 0;
+    int multiplier = 6;
+    std::string str_num = std::to_string(num);
+    int power = str_num.size() - 1;
+    for (int i = 0; i < str_num.size(); i++)
+    {
+        sum += (static_cast<int>(str_num[i] - '0')) * pow(multiplier, power);
+        power--;
+    }
+    return sum;
+}
+
+void PrintLog(std::string log)
+{
+    std::cout<<log<<'\n';
+}
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+namespace shifr
+{
+std::string line;
+int intdictionary;
+int key;
+std::string sizeShiftData;
+}
+
+namespace dictionary
+{
+std::vector<std::string> Dictionary = {"zMXd#QVZ$=3He (-%x.cPRqA@fFwEKN>psr:17/bJv*GLT9<!kSh8uI?^C2,YWBai4lm+yoDt6j5)gUOn",
+                                       ")Ez$TryqKX.(7j5skRe81wuSWD^CxFB@+ amIN%,tfd<Pc2GJg9Y3?n!Qo:Z4ilHVUvMpAh->b6#O*=L/",
+                                       "f42k/xXRT%H-pwIB7Ys1WrS,^8)#t+FcDaiG$qKPjlVMnyQA ?:!b>mz396ZL.5=oJNuhC<Ue@Ev(Odg*",
+                                       "EV.dx3^WT=oR(A/$zj27st%wbXPH1Lu)f Y@IehkqnF+QB4mJr!*8y-Gi<NCM5gOpD9avU6lK?c:#>SZ,",
+                                       "Vrntwk=9hYS>Q1)3oz,6WuMB-:mAad5!j(OKPyli^cx#4DgRTb.s2?$ZU7LCeI@q*%F/+< pEHGNvXf8J",
+                                       "@,DEotFlf*xXk2T6nPR+<uqB%?g =VWG/!AOC1v>MSz7wYLQd3m^yi(cs4#p9UK85IJ$HjZ-eNha.r)b:",
+                                       "NlFP:X9^1x)wV MK*b8,GO/YotCg-<Sc+mhyi=r4Hsk$@Zd2TWa?BQqe%pv6RUIEn(D>fuA5.!z7#LJ3j",
+                                       "CDSFQ:352@%XxyTtp= aB-Kkg9c617W,#JbYsU.imEVOqr+ul>APzMGR4eo?(dNn)vh/*fw8L!$ZHjI<^",
+                                       ":lVzGcTt>e.ZJQ*CL/6ni)g!fS,?kj(uO5yp1BPNH47+bEx2vs h3$=#KXU^FR8IDY<WA-a@9wmM%odqr",
+                                       "PL5n)UT #w94J-.GF*2vD=xHIQ+ioX/zlha!MZbguWr(dcSj^8?BRKq<1mVEOts$7>fNe6%A@yp3,C:kY",
+                                       "jxb8-YaU (Lf>4/u*FtlRK9Oz7?eW)vB6Gi2nkPm5dZcyXEhrSw:=MQ+H%VsDT$#<qI@^o!Agp1,N3.CJ",
+                                       "1NMY>hdCsGnr9y<@#X6j2.,Tak ^8wzW!4cIH+LUPQF=t(:-ZE)53KBbeSDo7Aqui*RVJ?vlx/pmfgO$%",
+                                       "N,gIvat+X^#wP?c(3E4 OxnZ:kFTqB@pWDe7h)K.Js$2=8bUj!omYCul9y<>5RG%*1Q6SfdHA/Vrz-LiM",
+                                       "J.P-wu@xWzelE/GS pq(+2?vt^bQHYh,VCB#MDX>4goIZm=5RF*KOd3N!i<6nU%AskfyL8Tj9acr$1:7)",
+                                       "+WczDrBnVQ!xy/1jRk?A@UL=l8EvhJ>9^5u3fg2ipd%maK,7*G(qNsH TOwboXStFPe.C$#-ZYI<M:6)4",
+                                       "P?943WGTenO*icwj1.#R^D=ysl< XEb$:L%kCI8,AJ7V(vx2+FHht>fKapN!o/q)@ZMYuz-d6UQg5SmrB",
+                                       "xnb#sU$vq)1<-E>AN(XC2h6rO4^wT3JzKgWSi=+D8G,lyM%9/QPeuLaYd.@jItHoR:fF7!5VZBp *m?ck",
+                                       "Hb$FyU2nim5YxguW^. /7B1T#KhV=Glf3N:z<>oscSa,X4MC%Lpq@D+QPd-wR)*JtrIkAE8vZ?(O!j9e6",
+                                       "i=m4^epbwc#.XjVWRK<7,r$zPU3EI6q!@uh/Mn1y(a:?d FYQ5NO%sfGS-gv)8t*2lBJoTL9H>+kxDAZC",
+                                       "gc:@f$zPFQ3ux7,BKApWomd4%rVRv*(Lh.nNe9ws2G DZbt5/=kTMJ<O>UHI1aY?S^CXl-i)Ey8!#qj6+",
+                                       "4nRZp!xuFXN qe:Pht%Oa?TU7dC3cD.H8MYKLE1b$<2i6r5V@o(+Gmk^J9=f)g>QylI/,*wS#-sjABWzv",
+                                       "<@Z7P8-qr=dHC3+fp L4Oi9bnR?#/*h!gNyJsIuWT%)S.tDEz6a1^GK(FQMYovlX>VmB:,jx$ceU52kwA",
+                                       "s@k$9rF^3cq(mAxlt4n?Ow6+IDNfyvdEQU5C#hVP1WS.oGuj)T-Ya!=HJgz78iZ</M%bpL X:>,*Be2KR",
+                                       "h8>$J<U/-kdbZ?cYgt:*Rjeqy7T%a9W@6Or=mCz#!IvAfSDw1LP4i^QVEs.GKH+n5NuM(xBl,3FpoX )2",
+                                       "?,SxdafA>yQH^gCv$UiPX*1B7hts#jqrRK2OZk4m+I3(.95NluJE:V/M)@-GY<nboWLT%zD8pe =6wcF!",
+                                       "Gk8LadN=Efy,-.b>vWu#Oxh+sXQA7ST$c@PJn%o/p2K5)^<miR:tz64U?!(Vg*FZB1l9IrqwejDMH C3Y",
+                                       "uHx9yW*@t5RvSK-8<=V:Iwm6(OiJBrb3j.g>Y$L ?EDklGn,%/hX!2fCdopa^U)qPQMsT4+cNA7ez#F1Z",
+                                       "7s^Aew9*+bn1!VWEF#UMd2:Z,PJXquRvki<(D)aKlmHYGOT@j4?CtxLc 6IQ$=z8h.5SgNo/B-fr%py>3",
+                                       "N6Cj?*,Hf)-SMW/Udng@GVZ5>+^cFY8:P =msETx.uq#alJBp!vewDy14K7R%O$2Q(3hktzbXIiA9<orL",
+                                       "YZ,lp/U82#NHAb+3P?jXOhg:GT(vz6oiKfRB-Iu)SWq< ^*Cx@we1.FV$trn7mJ=Dcs>Mk4aE5d!9%QLy"};//31
+
+}
+
+std::string Shorter(int num)
+{
+    std::string remainder;
+    int denominator = 6;
+    int count = 0;
+    if(num > denominator - 1)
+    {
+        while (count < 2) {
+            remainder += std::to_string(num % denominator);
+            num /= denominator;
+            if (num < denominator) {
+                count++;
+            }
+        }
+        std::reverse(remainder.begin(), remainder.end());
+    }
+    else
+    {
+        remainder = std::to_string(num);
+    }
+    shifr::sizeShiftData += std::to_string(remainder.size());
+    return remainder;
+}
+
+int Checking(int i, std::string& dictionary, int switcher)
+{
+    if (switcher == 2)
+    {
+        if (i + shifr::key > dictionary.size())
+        {
+            i = (i + shifr::key) % dictionary.size();
+        }
+    }
+    else if (switcher == 3)
+    {
+        if (shifr::key > i)
+        {
+            i = dictionary.size() - (shifr::key - (i + 1));
+            return i;
+        }
+    }
+}
+
+int Search(char sign, std::string dictionary, int switcher)
+{
+    for(int i = 0; i < dictionary.size(); i++)
+    {
+        if(sign == dictionary[i])
+        {
+            PrintLog(std::to_string(i));
+
+            if (switcher == 2)
+            {
+                if (i + shifr::key > dictionary.size())
+                {
+                    i = (i + shifr::key) % dictionary.size();
+                    return i;
+                }
+                else
+                {
+                    return i + shifr::key;
+                }
+            }
+            else if (switcher == 3)
+            {
+                if (shifr::key > i)
+                {
+                    i = dictionary.size() - (shifr::key - i);
+                    return i;
+                }
+                else
+                {
+                    return i - shifr::key;
+                }
+            }
+
+        }
+    }
+    PrintLog("error in search");
+    return 0; // error
+}
+
+std::string ToShifr()
+{
+    std::string newline;
+    std::string curentdictionary;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(0, 29);
+    std::uniform_int_distribution<> distribkey(7, 99);
+
+    shifr::key = distribkey(gen);
+    shifr::intdictionary = distrib(gen);
+    curentdictionary = dictionary::Dictionary[shifr::intdictionary];
+    PrintLog(curentdictionary);
+
+    for(int i = 0; i < shifr::line.size(); i++)
+    {
+        newline.push_back(curentdictionary[Search(shifr::line[i], curentdictionary, 2)]);
+    }
+    newline += Shorter(shifr::key);
+    newline += Shorter(shifr::intdictionary);
+    newline += shifr::sizeShiftData;
+    return newline;
+
+}
+
+std::string UnShifr()
+{
+    std::string newline;
+    std::string curentdictionary;
+
+    curentdictionary = dictionary::Dictionary[shifr::intdictionary];
+    PrintLog(curentdictionary);
+
+    for(int i = 0; i < shifr::line.size(); i++)
+    {
+        newline.push_back(curentdictionary[Search(shifr::line[i], curentdictionary, 3)]);
+    }
+    return newline;
+}
+
+void Sorter() {
+    std::string curkey;
+    std::string cursizes;
+    std::string curdictionary;
+
+
+    std::string curline = shifr::line;
+    int fullsize = curline.size();
+    int delnum = 2;
+
+    for (int j = 0; j < 3; j++) {
+        int count = 0;
+        for (int i = fullsize - (delnum); i < fullsize; i++) {
+            if (j == 0) {
+                cursizes.push_back(curline[i]);
+            } else if (j == 1) {
+                curdictionary.push_back(curline[i]);
+            } else if (j == 2) {
+                curkey.push_back(curline[i]);
+            }
+            count++;
+        }
+        for (int d = 0; d < count; d++) {
+            curline.pop_back();
+        }
+        fullsize -= delnum;
+        if (j == 0) {
+            delnum = static_cast<int>(cursizes[1] - '0');
+        } else if (j == 1) {
+            delnum = static_cast<int>(cursizes[0] - '0');
+        }
+    }
+    shifr::key = Longer(std::stoi(curkey));
+    shifr::intdictionary = Longer(std::stoi(curdictionary));
+    shifr::line = curline;
+
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    using namespace shifr;
+    using namespace dictionary;
+
+    line = ui->lineEdit->text().toStdString();
+    //key = std::stoi(ui->lineEdit_2->text().toStdString());
+
+
+
+    ui->lineEdit_4->setText(QString::fromStdString(ToShifr()));
+    //ui->lineEdit_5->setText(QString::fromStdString(std::to_string(intdictionary)));
+    PrintLog(std::to_string(intdictionary));
+    shifr::sizeShiftData = "";
+
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    using namespace shifr;
+    using namespace dictionary;
+
+    line = ui->lineEdit->text().toStdString();
+    Sorter();
+    //key = std::stoi(ui->lineEdit_3->text().toStdString());
+    //intdictionary = std::stoi(ui->lineEdit_6->text().toStdString());
+
+    ui->lineEdit_4->setText(QString::fromStdString(UnShifr()));
+
+}
+
+
+
