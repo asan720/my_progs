@@ -1,0 +1,80 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <cctype>
+#include <random>
+#include <locale>
+#include <locale>
+
+
+bool Search(char sign, const std::string& line)
+{
+    for(const auto& charr : line)
+    {
+        if (charr == sign)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string Randomer(const std::string& line)
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(0, line.size() - 1);
+
+    std::string timeline;
+    while(timeline.size() < line.size())
+    {
+        int curentchar = distrib(gen);
+        if(Search(line[curentchar], timeline))
+        {
+            timeline.push_back(line[curentchar]);
+        }
+    }
+    return timeline;
+}
+
+void Printer()
+{
+    int count = 30; // -1
+    std::string newLine = "std::vector<std::string> Dictionary = {";
+    for (int i = 0; i < count; i++)
+    {
+        std::string raw;
+        std::string lastline;
+        std::string line = "ab cdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,.()+-=!?%^$#@:<>*/123456789";
+        lastline += Randomer(line);
+ 
+        if(i < count - 1)
+        {
+            newLine += raw = R"###(")###" + lastline + R"###(",  )###"+ '\n';
+        }else
+        {
+            newLine += raw = R"###(")###" + lastline + R"###(")###";
+        }
+
+
+    }
+    newLine += '}';
+    std::cout<<newLine;
+
+}
+
+int main()
+{
+    std::setlocale(LC_ALL, "");
+
+
+    //std::setlocale(LC_ALL, "Russian");
+
+    Printer();
+
+    std::string line  = "абвгдеёжзиклмнопрстуфхцчшщьъэюяАБВГДЕЁЖЗИКЛМНОПРСТУФХЦЧШЩЬЪЭЮЯ";
+    //std::cout << Randomer(line) << std::endl;
+
+    return 0;
+}
