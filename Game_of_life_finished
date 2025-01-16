@@ -1,0 +1,162 @@
+#include <chrono>
+#include <iostream>
+#include <random>
+#include <thread>
+#include <vector>
+
+namespace vec {
+char signIsAlive = '#';
+char signIsDie = ' ';
+char border = '#';
+
+std::vector<std::vector<char>> grandVecFirst(58,
+                                             std::vector<char>(107, signIsDie));
+std::vector<std::vector<char>> grandVecLast(58,
+                                            std::vector<char>(107, signIsDie));
+} // namespace vec
+
+class cellsSpawner {
+public:
+  cellsSpawner(int i, int k) : i(i), k(k) {}
+  static void LWSS(int i, int k) {
+    /*
+. . # .
+# . . .
+. . . #
+# # # #
+*/
+    vec::grandVecFirst[i][k] = '#'; // 7
+    vec::grandVecFirst[i - 1][k + 2] = '#';
+    vec::grandVecFirst[i + 1][k + 3] = '#';
+    vec::grandVecFirst[i + 2][k + 3] = '#';
+    vec::grandVecFirst[i + 2][k + 2] = '#';
+    vec::grandVecFirst[i + 2][k + 1] = '#';
+    vec::grandVecFirst[i + 2][k] = '#';
+  }
+
+  static void Glider(int i, int k) {
+    /*
+    . # .
+    . . #
+    # # #
+
+     */
+    vec::grandVecFirst[i][k + 2] = '#';
+    vec::grandVecFirst[i - 1][k + 1] = '#';
+    vec::grandVecFirst[i + 1][k] = '#';
+    vec::grandVecFirst[i + 1][k + 1] = '#';
+    vec::grandVecFirst[i + 1][k + 2] = '#';
+  }
+
+  static void Spades(int i, int k) {
+    vec::grandVecFirst[i][k - 2] = '#'; // 7
+    vec::grandVecFirst[i][k - 3] = '#';
+    vec::grandVecFirst[i][k - 4] = '#';
+    vec::grandVecFirst[i - 1][k - 3] = '#';
+
+    vec::grandVecFirst[i][k + 2] = '#';
+    vec::grandVecFirst[i][k + 3] = '#';
+    vec::grandVecFirst[i][k + 4] = '#';
+    vec::grandVecFirst[i - 1][k + 3] = '#';
+  }
+
+private:
+  int i, k;
+};
+
+void sPrint() {
+  std::string name = "asan";
+  std::cout << "\033[1;31m" << name << "\033[0m\n";
+}
+
+void Print() {
+  using namespace vec;
+  for (int i = 0; i < grandVecFirst.size() - 1; i++) {
+    for (int k = 0; k < grandVecFirst[1].size() - 1; k++) {
+      std::cout << "\033[1;31m" << vec::grandVecFirst[i][k] << "\033[0m" << ' ';
+    }
+    std::cout << '\n';
+  }
+}
+
+int Neighbors(int beg, int end) {
+  using namespace vec;
+  if (beg > 45 || end > 95 || beg < 5 || end < 5) {
+    return 1;
+  }
+  int neighbors = 0;
+  if (vec::grandVecFirst[beg - 1][end] == signIsAlive) {
+    neighbors++;
+  }
+  if (vec::grandVecFirst[beg + 1][end] == signIsAlive) {
+    neighbors++;
+  }
+  if (vec::grandVecFirst[beg][end - 1] == signIsAlive) {
+    neighbors++;
+  }
+  if (vec::grandVecFirst[beg][end + 1] == signIsAlive) {
+    neighbors++;
+  }
+
+  if (vec::grandVecFirst[beg - 1][end - 1] == signIsAlive) {
+    neighbors++;
+  }
+  if (vec::grandVecFirst[beg + 1][end - 1] == signIsAlive) {
+    neighbors++;
+  }
+  if (vec::grandVecFirst[beg + 1][end + 1] == signIsAlive) {
+    neighbors++;
+  }
+  if (vec::grandVecFirst[beg - 1][end + 1] == signIsAlive) {
+    neighbors++;
+  }
+  return neighbors;
+}
+
+void CellsRules() {
+  using namespace vec;
+  grandVecLast = grandVecFirst;
+  for (int i = 0; i < grandVecFirst.size() - 1; i++) {
+    for (int k = 0; k < grandVecFirst[1].size() - 1; k++) {
+      if (grandVecFirst[i][k] == signIsAlive) {
+        if (Neighbors(i, k) != 2 && Neighbors(i, k) != 3) {
+          /*isAlive = false;*/
+          grandVecLast[i][k] = signIsDie;
+        }
+      } else if (Neighbors(i, k) == 3) {
+        grandVecLast[i][k] = signIsAlive;
+        // == '.'
+      }
+    }
+  }
+  grandVecFirst = grandVecLast;
+}
+
+int main() {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distr(0, 2);
+  std::uniform_int_distribution<> distr1(5, 45);
+  std::uniform_int_distribution<> distr2(5, 95);
+
+  for (int i = 0; true; i++) {
+    std::unique_ptr<cellsSpawner> cellsSpawner;
+    if (i % 5 == 0) {
+      switch (distr(gen)) {
+      case 0:
+        cellsSpawner->LWSS(distr1(gen), distr2(gen));
+        break;
+      case 1:
+        cellsSpawner->Glider(distr1(gen), distr2(gen));
+        break;
+      case 2:
+        cellsSpawner->Spades(distr1(gen), distr2(gen));
+        break;
+      }
+    }
+    Print();
+    CellsRules();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    system("clear");
+  }
+}
