@@ -1,0 +1,425 @@
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
+#include <random>
+#include <termios.h>
+#include <thread>
+#include <unistd.h>
+#include <vector>
+
+void setNonCanonicalMode() {
+  termios tty;
+  tcgetattr(STDIN_FILENO, &tty); // Получаем текущие настройки терминала
+  tty.c_lflag &= ~(ICANON | ECHO); // Отключаем канонический режим и эхо
+  tty.c_cc[VMIN] = 0;  // Не ждем ни одного символа
+  tty.c_cc[VTIME] = 0; // Без таймаута
+  tcsetattr(STDIN_FILENO, TCSANOW, &tty); // Применяем новые настройки
+}
+void setCanonicalMode() {
+  struct termios tty;
+  tcgetattr(STDIN_FILENO, &tty);
+  tty.c_lflag |= ICANON | ECHO; // Включаем канонический режим и эхо
+  tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+}
+
+void Help() {
+  int q;
+  std::cout << R"#(
+
+
+
+					исправлены ошибки исчезновения фигур, добавлен 
+					  г обрзный блок, добавлена функция быстрого
+						   опускания фигуры кнопкой вниз
+							для выхода нажмите "q"
+						почему то только 1 раз пока
+	)#";
+  std::cin >> q;
+}
+
+void Openning() {
+  /*можно написать "h" или "help" для справки,
+          или во время игры нажать "q"*/
+  std::string a;
+  std::cout << R"###(
+						управление стрелками
+							<- ->
+					позже будет быстрое опускание на `вниз`
+						и поворот на  ^
+							      |
+
+					для начала нажми ввод(ентер)
+			         там типа `cin>>a;` так шо разберешся
+				   
+
+
+					исправлены ошибки исчезновения фигур, добавлен 
+					  г обрзный блок, добавлена функция быстрого
+						   опускания фигуры кнопкой вниз
+							для выхода нажмите "q"
+						почему то только 1 раз пока		 
+	)###";
+  std::cin >> a;
+  if (a == "h" || a == "help" || a == "q") {
+    system("cls");
+    Help();
+  }
+}
+
+struct Points {
+  int x = 1;
+  int y = 1;
+};
+
+namespace Simbols {
+char simbolblock = '#';
+char simbolback = ' ';
+} // namespace Simbols
+
+namespace Matrix {
+std::vector<std::vector<char>> vec(20,
+                                   std::vector<char>(20, Simbols::simbolback));
+}
+
+void Print() {
+  system("clear");
+  /*std::cout << "\033c";*/
+  for (const auto &elemM : Matrix::vec) {
+    for (const auto &elem : elemM) {
+      std::cout << elem << ' ';
+    }
+    std::cout << '\n';
+  }
+}
+
+class Figure {
+public:
+  Figure() : row(1), col(8) {}
+  Figure(int row, int col) : row(row), col(col) {}
+  int row;
+  int col;
+  virtual void Creating() {}
+  virtual void Down() {}
+  virtual void Left() {}
+  virtual void Right() {}
+  virtual void FastDown() {}
+  virtual bool Counter() { return true; }
+  virtual bool VrificationSide(std::string side) { return true; }
+};
+
+class FigureCube : public Figure {
+public:
+  FigureCube() : Figure() {}
+  FigureCube(int row, int col) : Figure(row, col) {}
+
+  void Creating() override { Cube(); }
+
+  void Left() // write verification
+  {
+    if (VrificationSide("left")) {
+      Matrix::vec[row][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 1] = Simbols::simbolback;
+      Matrix::vec[row + 1][col] = Simbols::simbolback;
+      Matrix::vec[row + 1][col + 1] = Simbols::simbolback;
+      col--;
+    }
+  }
+
+  void Right() // write verification
+  {
+    if (VrificationSide("right")) {
+      Matrix::vec[row][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 1] = Simbols::simbolback;
+      Matrix::vec[row + 1][col] = Simbols::simbolback;
+      Matrix::vec[row + 1][col + 1] = Simbols::simbolback;
+      col++;
+    }
+  }
+
+  // добавить в низ
+
+  void Down() override {
+    if (new3.x < 19 && VerificationFlour() && row < 18) {
+      Matrix::vec[row][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 1] = Simbols::simbolback;
+      Matrix::vec[row + 1][col] = Simbols::simbolback;
+      Matrix::vec[row + 1][col + 1] = Simbols::simbolback;
+      row++;
+    }
+  }
+
+  bool Counter() override {
+    count++;
+    if (count <= 35 && VerificationFlour()) {
+      return true;
+    }
+    on_the_flour = true;
+    return false;
+  }
+
+  void FastDown() {
+    DeleteCube();
+    int i = this->row;
+    for (; i < 19 && !fastdown && row < 18; i++) {
+      if (Matrix::vec[i + 2][col] == Simbols::simbolblock ||
+          Matrix::vec[i + 2][col + 1] == Simbols::simbolblock) {
+        fastdown = true;
+      } else {
+        row++;
+        continue;
+      }
+    }
+
+    count = i * 2;
+    Cube();
+  }
+
+  void DeleteCube() {
+    Matrix::vec[row][col] = Simbols::simbolback;
+    Matrix::vec[row][col + 1] = Simbols::simbolback;
+    Matrix::vec[row + 1][col] = Simbols::simbolback;
+    Matrix::vec[row + 1][col + 1] = Simbols::simbolback;
+  }
+
+protected:
+  int count = 0;
+
+  bool fastdown = false;
+  bool on_the_flour = false;
+  Points new1;
+  Points new2;
+  Points new3;
+  Points new4;
+
+  void Cube() {
+    Matrix::vec[row][col] = Simbols::simbolblock;
+    Matrix::vec[row][col + 1] = Simbols::simbolblock;
+    Matrix::vec[row + 1][col] = Simbols::simbolblock;
+    Matrix::vec[row + 1][col + 1] = Simbols::simbolblock;
+    new1.x = row;
+    new1.y = col;
+    new2.x = row;
+    new2.y = col + 1;
+    new3.x = row + 1;
+    new3.y = col;
+    new4.x = row + 1;
+    new4.y = col + 1;
+  }
+
+  bool VrificationSide(std::string side) override {
+    if (side == "left") {
+      if (Matrix::vec[row][col - 1] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col - 1] == Simbols::simbolblock) {
+        return false;
+      }
+      return true;
+    }
+    if (side == "right") {
+      if (Matrix::vec[row][col + 2] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col + 2] == Simbols::simbolblock) {
+        return false;
+      }
+      return true;
+    }
+    return true;
+  }
+
+  bool VerificationFlour() {
+    if (!on_the_flour && row < Matrix::vec.size() && row < 18) {
+      if (Matrix::vec[row + 2][col] == Simbols::simbolblock ||
+          Matrix::vec[row + 2][col + 1] == Simbols::simbolblock) {
+        this->on_the_flour = true; // возможно лишняя
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+class FigureStick : public Figure {
+public:
+  FigureStick() : Figure() {}
+  FigureStick(int row, int col) : Figure(row, col) {}
+
+  void Creating() override { Cube(); }
+
+  void Left() override // write verification
+  {
+    if (VrificationSide("left")) {
+      Matrix::vec[row][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 1] = Simbols::simbolback;
+      Matrix::vec[row + 1][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 2] = Simbols::simbolback;
+      col--;
+    }
+  }
+
+  void Right() override // write verification
+  {
+    if (VrificationSide("right")) {
+      Matrix::vec[row][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 1] = Simbols::simbolback;
+      Matrix::vec[row + 1][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 2] = Simbols::simbolback;
+      col++;
+    }
+  }
+
+  // добавить в низ
+
+  void Down() override {
+    if (new3.x < 19 && VerificationFlour() && row < 18) {
+      Matrix::vec[row][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 1] = Simbols::simbolback;
+      Matrix::vec[row + 1][col] = Simbols::simbolback;
+      Matrix::vec[row][col + 2] = Simbols::simbolback;
+      row++;
+    }
+  }
+
+  bool Counter() override {
+    count++;
+    if (count <= 35 && VerificationFlour()) {
+      return true;
+    }
+    on_the_flour = true;
+    return false;
+  }
+
+  void FastDown() {
+    DeleteStick();
+    int i = this->row;
+    for (; i < 19 && !fastdown && row < 18; i++) {
+      if (Matrix::vec[row + 2][col] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col + 1] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col + 2] == Simbols::simbolblock) {
+        fastdown = true;
+      } else {
+        row++;
+        continue;
+      }
+    }
+
+    count = i * 2;
+    Cube();
+  }
+
+  void DeleteStick() {
+    Matrix::vec[row][col] = Simbols::simbolback;
+    Matrix::vec[row][col + 1] = Simbols::simbolback;
+    Matrix::vec[row + 1][col] = Simbols::simbolback;
+    Matrix::vec[row][col + 2] = Simbols::simbolback;
+  }
+
+protected:
+  int count = 0;
+
+  bool fastdown = false;
+  bool on_the_flour = false;
+  Points new1;
+  Points new2;
+  Points new3;
+  Points new4;
+
+  void Cube() {
+    Matrix::vec[row][col] = Simbols::simbolblock;
+    Matrix::vec[row][col + 1] = Simbols::simbolblock;
+    Matrix::vec[row + 1][col] = Simbols::simbolblock;
+    Matrix::vec[row][col + 2] = Simbols::simbolblock;
+    new1.x = row;
+    new1.y = col;
+    new2.x = row;
+    new2.y = col + 1;
+    new3.x = row + 1;
+    new3.y = col;
+    new4.x = row;
+    new4.y = col + 2;
+  }
+
+  bool VrificationSide(std::string side) override {
+    if (side == "left") {
+      if (Matrix::vec[row][col - 1] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col - 1] == Simbols::simbolblock) {
+        return false;
+      }
+      return true;
+    }
+    if (side == "right") {
+      if (Matrix::vec[row][col + 3] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col + 1] == Simbols::simbolblock) {
+        return false;
+      }
+      return true;
+    }
+    return true;
+  }
+
+  bool VerificationFlour() {
+    if (!on_the_flour && row < Matrix::vec.size() && row < 18) {
+      if (Matrix::vec[row + 2][col] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col + 1] == Simbols::simbolblock ||
+          Matrix::vec[row + 1][col + 2] == Simbols::simbolblock) {
+        this->on_the_flour = true; // возможно лишняя
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+int main() {
+  setNonCanonicalMode();
+  // Openning();
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distr(0, 1);
+
+  int j = 0;
+  for (j = 0; j < 200; j++) {
+    std::unique_ptr<Figure> figure;
+    switch (distr(gen)) {
+    case 0:
+      figure = std::make_unique<FigureCube>();
+      break;
+    case 1:
+      figure = std::make_unique<FigureStick>();
+      break;
+    }
+    /*FigureCube cube;*/
+    /*FigureStick cube;*/
+    for (int i = 0; i < 35 && figure->Counter();
+         i++) // длина одного, умноженая на 2
+    {
+
+      /*figure->Creating();
+      Print();*/
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+      if (i % 2 == 0) {
+        figure->Down();
+      }
+
+      figure->Creating();
+      Print();
+      char ch;
+      if (read(STDIN_FILENO, &ch, 1)) {
+        switch (ch) {
+        case 'a':
+          figure->Left();
+          break;
+        case 'd':
+          figure->Right();
+          break;
+        case 's':
+          figure->FastDown();
+          break;
+        case 'q':
+          Help();
+          break;
+        }
+      }
+    }
+  }
+  std::cout << "score: " << j << '\n' << "*****GAME OVER*****";
+  std::cin >> j;
+}
