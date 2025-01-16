@@ -1,0 +1,343 @@
+#include <chrono>
+#include <iostream>
+#include <locale.h>
+#include <optional>
+#include <random>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <thread>
+#include <unistd.h>
+#include <unordered_map>
+#include <vector>
+
+using namespace std::literals;
+class Snake;
+
+std::string Tabulize(int num) {
+  std::string word;
+  for (int i = 0; i < num; i++) {
+    word += ' ';
+  }
+  return word;
+}
+
+int RandInt(int a, int b) {
+  if (a > b) {
+    std::swap(a, b);
+  }
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distr(a, b);
+  return distr(gen);
+}
+void setNonCanonicalMode() {
+  termios tty;
+  tcgetattr(STDIN_FILENO, &tty); // Получаем текущие настройки терминала
+  tty.c_lflag &= ~(ICANON | ECHO); // Отключаем канонический режим и эхо
+  tty.c_cc[VMIN] = 0;  // Не ждем ни одного символа
+  tty.c_cc[VTIME] = 0; // Без таймаута
+  tcsetattr(STDIN_FILENO, TCSANOW, &tty); // Применяем новые настройки
+}
+void setCanonicalMode() {
+  struct termios tty;
+  tcgetattr(STDIN_FILENO, &tty);
+  tty.c_lflag |= ICANON | ECHO; // Включаем канонический режим и эхо
+  tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+}
+// Функция для восстановления настроек терминала
+void restoreTerminal() {
+  termios tty;
+  tcgetattr(STDIN_FILENO, &tty); // Получаем текущие настройки терминала
+  tty.c_lflag |= (ICANON | ECHO); // Включаем канонический режим и эхо
+  tcsetattr(STDIN_FILENO, TCSANOW, &tty); // Применяем новые настройки
+}
+
+namespace Field {
+enum class State_of_game { PLAY, PAUSE, FAIL, EXIT };
+std::unordered_map<std::string, int> Speed_of_snake = {
+    {"HARMLESS", 500}, {"LENIENT", 300}, {"STANDARD", 200},
+    {"VIOLENT", 150},  {"BRUTAL", 100},  {"ULTRAKILL", 70}};
+State_of_game game_is_alive = State_of_game::PLAY;
+bool Snake_is_alive = false;
+char apple = '*';
+char filling = 'O';
+char filling_space = ' ';
+char filling_border = '#';
+int size_x = 20;
+int size_y = 70;
+int speed = 0;
+std::vector<std::vector<char>>
+    ClearVecField(size_x, std::vector<char>(size_y, filling_space));
+std::vector<std::vector<char>>
+    GrandVecField(size_x, std::vector<char>(size_y, filling_space));
+bool apple_exists = false;
+void Stop_game() {
+  setCanonicalMode();
+  Field::game_is_alive = State_of_game::PAUSE;
+  while (game_is_alive != State_of_game::PLAY) {
+    std::system("clear");
+    std::cout << "-- GAME IS STOPPED --\n";
+    std::cout << "-- PRESS (r) KEY FOR PLAY, PRESS (q) FOR EXIT\n";
+    char state;
+    std::cin >> state;
+    if (state == 'r') {
+      Field::game_is_alive = State_of_game::PLAY;
+      setNonCanonicalMode();
+    } else {
+      Field::game_is_alive = State_of_game::FAIL;
+    }
+  }
+}
+
+void Stop_game(int score) {
+  setCanonicalMode();
+  while (game_is_alive != State_of_game::PLAY) {
+    std::cout << "   -- YOUR SCORE IS  " << score << " --" << '\n';
+    std::cout << "-- PRESS (r) FOR CONTINUE --\n";
+    char state;
+    std::cin >> state;
+    if (state == 'r') {
+      Field::game_is_alive = State_of_game::PLAY;
+      Snake_is_alive = false;
+      setNonCanonicalMode();
+    } else {
+      Field::game_is_alive = State_of_game::FAIL;
+    }
+  }
+}
+
+void Cleaner() { GrandVecField = ClearVecField; }
+
+void Set_Settings() {
+  setCanonicalMode();
+  std::vector<std::pair<std::string, int>> Speed_vector(Speed_of_snake.begin(),
+                                                        Speed_of_snake.end());
+  std::cout << " ================================ \n";
+  std::cout << " :INPUT THE LENGTH OF X AND Y OF FIELD: ";
+  std::cin >> size_x >> size_y;
+  int counter = 1;
+  int box;
+  for (auto speed : Speed_of_snake) {
+    std::cout << counter << '\t' << speed.first << '\n';
+    counter++;
+  }
+  std::cout << " :INPUT NUMBER OF DIFFICULT: ";
+  std::cin >> box;
+  speed = Speed_vector[box - 1].second;
+  setNonCanonicalMode();
+}
+// "\033[1;31m" << name << "\033[0m\n";
+
+void PrintField(int score) {
+  using namespace Field;
+  for (int i = -1; i <= size_x; i++) {
+    for (int j = -1; j <= size_y; j++) {
+      if (i == -1 || j == -1 || i == size_x || j == size_y) {
+        std::cout << ' ' << "\033[1;31m" << filling_border << "\033[0m";
+      } else if (GrandVecField[i][j] == '*') {
+        std::cout << ' ' << "\033[1;33m" << GrandVecField[i][j] << "\033[0m";
+
+      } else {
+        std::cout << ' ' << "\033[1;32m" << GrandVecField[i][j] << "\033[0m";
+      }
+    }
+    std::cout << '\n';
+  }
+  std::cout << Tabulize(size_y - 8) << "-- SCORE IS " << score << " --\n";
+}
+} // namespace Field
+
+class Apple {
+public:
+  int x;
+  int y;
+  Apple() {
+    Field::apple_exists = true;
+
+    x = RandInt(0, Field::size_x - 1);
+    y = RandInt(0, Field::size_x - 1);
+    Field::GrandVecField[x][y] = Field::apple;
+    Field::Cleaner();
+  }
+};
+
+class Snake {
+public:
+  enum class Directions { UP = 5, DOWN = 10, LEFT = 3, RIGHT = 6 };
+  struct Body_of_snake {
+    Body_of_snake(int x, int y) : x(x), y(y) {}
+    Body_of_snake() {}
+    int x;
+    int y;
+  };
+
+  std::vector<Body_of_snake> coordinates_of_bodys;
+  Directions curent_direction = Directions::RIGHT;
+  Directions previos_direction = Directions::RIGHT;
+
+  Snake(int x, int y) { Init_snake(x, y); }
+  Snake() {}
+
+  void Draw_sneak(Apple apple) {
+    using namespace Field;
+    Cleaner();
+    for (auto &cell : coordinates_of_bodys) {
+      GrandVecField[cell.x][cell.y] = filling;
+    }
+    GrandVecField[apple.x][apple.y] = Field::apple;
+  }
+
+  bool Verify_eat_apple() {
+    if (Field::GrandVecField[coordinates_of_bodys[0].x]
+                            [coordinates_of_bodys[0].y] == '*') {
+      Field::apple_exists = false;
+      return true;
+    } else
+      return false;
+  }
+  void Init_snake(int x, int y) {
+    Body_of_snake c_x(RandInt(x, y), RandInt(x, y));
+    coordinates_of_bodys.push_back(c_x);
+    Field::Snake_is_alive = true;
+  }
+
+  bool Verifer_of_borders(int x, int y) {
+    if (x > Field::size_x - 1 || x < 0 || y < 0 || y > Field::size_y - 1) {
+      Field::game_is_alive = Field::State_of_game::FAIL;
+      return false;
+    } else {
+      return true;
+    }
+  }
+  bool Verifer_of_across_directions() {
+    if (previos_direction == curent_direction)
+      return true;
+    int x = static_cast<int>(curent_direction);
+    int y = static_cast<int>(previos_direction);
+    if (x < y) {
+      std::swap(x, y);
+    }
+    if (x % y == 0)
+      return false;
+    else
+      return true;
+  }
+  bool Ouroboros(int new_x, int new_y) {
+    for (int i = 1; i < static_cast<int>(coordinates_of_bodys.size()); i++) {
+      if (coordinates_of_bodys[i].x == new_x &&
+          coordinates_of_bodys[i].y == new_y) {
+        Field::game_is_alive = Field::State_of_game::FAIL;
+        return false;
+      }
+    }
+    return true;
+  }
+  void Step_body(int new_x, int new_y) {
+    if (Verifer_of_borders(new_x, new_y) && Ouroboros(new_x, new_y)) {
+      bool add_cell = false;
+      Body_of_snake new_cell = Body_of_snake();
+      if (Verify_eat_apple()) {
+        add_cell = true;
+        new_cell.x = coordinates_of_bodys.back().x;
+        new_cell.y = coordinates_of_bodys.back().y;
+      }
+      for (int i = static_cast<int>(coordinates_of_bodys.size()) - 1; i > 0;
+           i--) {
+        coordinates_of_bodys[i].x = coordinates_of_bodys[i - 1].x;
+        coordinates_of_bodys[i].y = coordinates_of_bodys[i - 1].y;
+      }
+      coordinates_of_bodys[0].x = new_x;
+      coordinates_of_bodys[0].y = new_y;
+      if (add_cell) {
+        coordinates_of_bodys.push_back(new_cell);
+      }
+    }
+    previos_direction = curent_direction;
+  }
+  void Step_forward() {
+    switch (curent_direction) {
+    case Directions::UP:
+      if (!Verifer_of_across_directions()) {
+        curent_direction = previos_direction;
+        Step_forward();
+      } else
+        Step_body(coordinates_of_bodys[0].x - 1, coordinates_of_bodys[0].y);
+      break;
+    case Directions::DOWN:
+      if (!Verifer_of_across_directions()) {
+        curent_direction = previos_direction;
+        Step_forward();
+      } else
+        Step_body(coordinates_of_bodys[0].x + 1, coordinates_of_bodys[0].y);
+      break;
+    case Directions::LEFT:
+      if (!Verifer_of_across_directions()) {
+        curent_direction = previos_direction;
+        Step_forward();
+      } else
+        Step_body(coordinates_of_bodys[0].x, coordinates_of_bodys[0].y - 1);
+      break;
+    case Directions::RIGHT:
+      if (!Verifer_of_across_directions()) {
+        curent_direction = previos_direction;
+        Step_forward();
+      } else
+        Step_body(coordinates_of_bodys[0].x, coordinates_of_bodys[0].y + 1);
+      break;
+    }
+  }
+  void Step_Left() { curent_direction = Directions::LEFT; }
+  void Step_Right() { curent_direction = Directions::RIGHT; }
+  void Step_Up() { curent_direction = Directions::UP; }
+  void Step_Down() { curent_direction = Directions::DOWN; }
+};
+
+int main() {
+  setlocale(LC_ALL, "");
+  Field::Set_Settings(); // this
+  setNonCanonicalMode(); // Настройка неканонического режима
+
+  Apple apple;
+  Snake snake = Snake(RandInt(3, 7), RandInt(3, 7));
+  while (Field::game_is_alive != Field::State_of_game::EXIT) {
+    if (!Field::Snake_is_alive) {
+      snake = Snake(3, 7);
+    };
+    while (Field::game_is_alive == Field::State_of_game::PLAY) {
+      if (!Field::apple_exists) {
+        apple = Apple();
+      }
+      snake.Draw_sneak(apple);
+
+      Field::PrintField(static_cast<int>(snake.coordinates_of_bodys.size()));
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(static_cast<long>(Field::speed)));
+      std::system("clear");
+
+      char ch;
+      if (read(STDIN_FILENO, &ch, 1) > 0) { // Чтение символа
+        switch (ch) {
+        case 'w':
+          snake.Step_Up();
+          break;
+        case 'a':
+          snake.Step_Left();
+          break;
+        case 'd':
+          snake.Step_Right();
+          break;
+        case 's':
+          snake.Step_Down();
+          break;
+        case 'q':
+          Field::Stop_game();
+          return 0;
+        }
+      }
+      snake.Step_forward();
+    }
+    Field::Stop_game(static_cast<int>(snake.coordinates_of_bodys.size()));
+  }
+}
